@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mikowitz/trace/pkg/trace"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -32,15 +33,13 @@ func main() {
 
 	for y := range imageHeight {
 		for x := range imageWidth {
-			r := 0.0
-			g := float32(y) / float32(imageHeight-1)
-			b := float32(x) / float32(imageHeight-1)
+			pixelColor := trace.NewColor(
+				0.0,
+				float64(y)/float64(imageHeight-1),
+				float64(x)/float64(imageHeight-1),
+			)
 
-			ir := int(255.999 * r)
-			ig := int(255.999 * g)
-			ib := int(255.999 * b)
-
-			_, err = f.WriteString(fmt.Sprintf("%d %d %d\n", ir, ig, ib))
+			_, err = f.WriteString(pixelColor.ToPpm())
 			handle(err)
 		}
 
