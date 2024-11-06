@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
+	"sync"
 
 	"github.com/mikowitz/trace/pkg/trace"
 	"github.com/schollz/progressbar/v3"
@@ -15,8 +17,27 @@ func handle(err error) {
 }
 
 func main() {
-	imageWidth := 256
-	imageHeight := 256
+	aspectRatio := 16.0 / 9.0
+	imageWidth := 400
+
+	imageHeight := int(float64(imageWidth) / aspectRatio)
+	if imageHeight < 1 {
+		imageHeight = 1
+	}
+
+	focalLength := 1.0
+	viewportHeight := 2.0
+	viewportWidth := viewportHeight * (float64(imageWidth) / float64(imageHeight))
+	cameraCenter := trace.NewVec(0, 0, 0)
+
+	viewportU := trace.NewVec(viewportWidth, 0, 0)
+	viewportV := trace.NewVec(0, -viewportHeight, 0)
+
+	pixelDeltaU := viewportU.Div(float64(imageWidth))
+	pixelDeltaV := viewportV.Div(float64(imageHeight))
+
+	viewportUpperLeft := cameraCenter.Sub(trace.NewVec(0, 0, focalLength)).Sub(viewportU.Div(2)).Sub(viewportV.Div(2))
+	pixel00Loc := viewportUpperLeft.Add(pixelDeltaU.Add(pixelDeltaV).Mul(0.5))
 
 	f, err := os.Create("image.ppm")
 	handle(err)
@@ -31,19 +52,35 @@ func main() {
 		progressbar.OptionSetElapsedTime(true),
 	)
 
+	semaphore := make(chan struct{}, 100)
+	var wg sync.WaitGroup
+
+	pixels := make([]string, imageWidth*imageHeight)
+
 	for y := range imageHeight {
 		for x := range imageWidth {
-			pixelColor := trace.NewColor(
-				0.0,
-				float64(y)/float64(imageHeight-1),
-				float64(x)/float64(imageHeight-1),
-			)
+			wg.Add(1)
+			go func(x, y int) {
+				defer wg.Done()
+				semaphore <- struct{}{}
+				defer func() { <-semaphore }()
 
-			_, err = f.WriteString(pixelColor.ToPpm())
-			handle(err)
+				pixelCenter := pixel00Loc.Add(pixelDeltaU.Mul(float64(x))).Add(pixelDeltaV.Mul(float64(y)))
+				rayDirection := pixelCenter.Sub(cameraCenter)
+				ray := trace.NewRay(cameraCenter, rayDirection)
+
+				pixelColor := ray.Color()
+				pixels[y*imageWidth+x] = pixelColor.ToPpm()
+				handle(err)
+			}(x, y)
 		}
+		wg.Wait()
 
 		err = bar.Add(1)
 		handle(err)
 	}
+
+	pixelString := strings.Join(pixels, "")
+	_, err = f.WriteString(pixelString)
+	handle(err)
 }
