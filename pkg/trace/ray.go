@@ -15,7 +15,7 @@ func (r Ray) At(t float64) Point {
 	return r.Origin.Add(r.Direction.Mul(t))
 }
 
-func (r Ray) Color(world HittableList) Color {
+func (r Ray) Color(world Hittable) Color {
 	isHit, hitRec := world.Hit(r, NewInterval(0.0, math.Inf(1)))
 	if isHit {
 		return hitRec.Normal.Add(NewColor(1, 1, 1)).Mul(0.5)
