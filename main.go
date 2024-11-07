@@ -55,6 +55,10 @@ func main() {
 	semaphore := make(chan struct{}, 100)
 	var wg sync.WaitGroup
 
+	world := trace.HittableList{}
+	world.Add(trace.NewSphere(trace.NewVec(0, 0, -1), 0.5))
+	world.Add(trace.NewSphere(trace.NewVec(0, -100.5, -1), 100))
+
 	pixels := make([]string, imageWidth*imageHeight)
 
 	for y := range imageHeight {
@@ -69,7 +73,7 @@ func main() {
 				rayDirection := pixelCenter.Sub(cameraCenter)
 				ray := trace.NewRay(cameraCenter, rayDirection)
 
-				pixelColor := ray.Color()
+				pixelColor := ray.Color(world)
 				pixels[y*imageWidth+x] = pixelColor.ToPpm()
 				handle(err)
 			}(x, y)
