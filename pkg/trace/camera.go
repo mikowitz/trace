@@ -2,6 +2,7 @@ package trace
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"sync"
@@ -12,6 +13,8 @@ import (
 type Camera struct {
 	aspectRatio             float64
 	imageWidth, imageHeight int
+	samplesPerPixel         int
+	pixelSampleScale        float64
 
 	center, pixel00Loc       Point
 	pixelDeltaU, pixelDeltaV Vec
@@ -29,6 +32,10 @@ func (c *Camera) ImageWidth(imageWidth int) {
 	c.imageWidth = imageWidth
 }
 
+func (c *Camera) SamplesPerPixel(samplesPerPixel int) {
+	c.samplesPerPixel = samplesPerPixel
+}
+
 func (c *Camera) Render(world Hittable) {
 	c.initialize()
 
@@ -39,13 +46,11 @@ func (c *Camera) Render(world Hittable) {
 	_, err = f.WriteString(fmt.Sprintf("P3\n%d %d\n255\n", c.imageWidth, c.imageHeight))
 	handle(err)
 
-	bar := progressbar.NewOptions(c.imageHeight,
+	bar := progressbar.NewOptions(c.imageWidth*c.imageHeight,
 		progressbar.OptionSetWidth(50),
-		progressbar.OptionSetPredictTime(true),
-		progressbar.OptionSetElapsedTime(true),
 	)
 
-	semaphore := make(chan struct{}, 100)
+	semaphore := make(chan struct{}, 10)
 	var wg sync.WaitGroup
 
 	pixels := make([]string, c.imageWidth*c.imageHeight)
@@ -55,27 +60,38 @@ func (c *Camera) Render(world Hittable) {
 			wg.Add(1)
 			go func(x, y int) {
 				defer wg.Done()
+				defer func() {
+					err = bar.Add(1)
+					handle(err)
+				}()
 				semaphore <- struct{}{}
 				defer func() { <-semaphore }()
 
-				pixelCenter := c.pixel00Loc.Add(c.pixelDeltaU.Mul(float64(x))).Add(c.pixelDeltaV.Mul(float64(y)))
-				rayDirection := pixelCenter.Sub(c.center)
-				ray := NewRay(c.center, rayDirection)
-
-				pixelColor := ray.Color(world)
-				pixels[y*c.imageWidth+x] = pixelColor.ToPpm()
-				handle(err)
+				pixelColor := NewColor(0, 0, 0)
+				for _ = range c.samplesPerPixel {
+					r := c.getRay(x, y)
+					pixelColor = pixelColor.Add(r.Color(world))
+				}
+				pixels[y*c.imageWidth+x] = pixelColor.Mul(c.pixelSampleScale).ToPpm()
 			}(x, y)
 		}
 		wg.Wait()
-
-		err = bar.Add(1)
-		handle(err)
 	}
 
 	pixelString := strings.Join(pixels, "")
 	_, err = f.WriteString(pixelString)
 	handle(err)
+}
+
+func (c *Camera) getRay(x, y int) Ray {
+	xOffset := rand.Float64() - 0.5
+	yOffset := rand.Float64() - 0.5
+	pixelSample := c.pixel00Loc.Add(c.pixelDeltaU.Mul(float64(x) + xOffset)).
+		Add(c.pixelDeltaV.Mul(float64(y) + yOffset))
+
+	origin := c.center
+	direction := pixelSample.Sub(origin)
+	return NewRay(origin, direction)
 }
 
 func (c *Camera) initialize() {
@@ -84,10 +100,13 @@ func (c *Camera) initialize() {
 		c.imageHeight = 1
 	}
 
+	c.pixelSampleScale = 1.0 / float64(c.samplesPerPixel)
+
+	c.center = NewVec(0, 0, 0)
+
 	focalLength := 1.0
 	viewportHeight := 2.0
 	viewportWidth := viewportHeight * (float64(c.imageWidth) / float64(c.imageHeight))
-	c.center = NewVec(0, 0, 0)
 
 	viewportU := NewVec(viewportWidth, 0, 0)
 	viewportV := NewVec(0, -viewportHeight, 0)

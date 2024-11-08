@@ -12,6 +12,7 @@ func main() {
 	c := trace.NewCamera()
 	c.AspectRatio(16.0 / 9.0)
 	c.ImageWidth(400)
+	c.SamplesPerPixel(100)
 
 	c.Render(world)
 }
