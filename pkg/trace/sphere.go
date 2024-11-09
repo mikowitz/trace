@@ -3,12 +3,13 @@ package trace
 import "math"
 
 type Sphere struct {
-	Center Point
-	Radius float64
+	Center   Point
+	Radius   float64
+	Material Material
 }
 
-func NewSphere(center Point, radius float64) Sphere {
-	return Sphere{Center: center, Radius: radius}
+func NewSphere(center Point, radius float64, material Material) Sphere {
+	return Sphere{Center: center, Radius: radius, Material: material}
 }
 
 func (s Sphere) Hit(r Ray, i Interval) (bool, HitRecord) {
@@ -38,6 +39,7 @@ func (s Sphere) Hit(r Ray, i Interval) (bool, HitRecord) {
 	rec.P = r.At(rec.T)
 	outwardNormal := rec.P.Sub(s.Center).Div(s.Radius)
 	rec.SetFaceNormal(r, outwardNormal)
+	rec.Material = s.Material
 
 	return true, rec
 }

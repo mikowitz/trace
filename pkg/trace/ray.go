@@ -22,9 +22,11 @@ func (r Ray) Color(world Hittable, depth int) Color {
 
 	isHit, hitRec := world.Hit(r, NewInterval(0.001, math.Inf(1)))
 	if isHit {
-		// direction := RandomOnHemisphere(hitRec.Normal)
-		direction := hitRec.Normal.Add(RandomUnitVector())
-		return NewRay(hitRec.P, direction).Color(world, depth-1).Mul(0.5)
+		scatters, scatterRec := hitRec.Material.Scatter(r, hitRec)
+		if scatters {
+			return scatterRec.Attenuation.Prod(scatterRec.Scattered.Color(world, depth-1))
+		}
+		return NewColor(0, 0, 0)
 	}
 
 	unitDirection := r.Direction.Normalize()
