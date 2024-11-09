@@ -14,10 +14,11 @@ type Camera struct {
 	aspectRatio             float64
 	imageWidth, imageHeight int
 	samplesPerPixel         int
-	pixelSampleScale        float64
+	maxDepth                int
 
 	center, pixel00Loc       Point
 	pixelDeltaU, pixelDeltaV Vec
+	pixelSampleScale         float64
 }
 
 func NewCamera() Camera {
@@ -34,6 +35,10 @@ func (c *Camera) ImageWidth(imageWidth int) {
 
 func (c *Camera) SamplesPerPixel(samplesPerPixel int) {
 	c.samplesPerPixel = samplesPerPixel
+}
+
+func (c *Camera) MaxDepth(maxDepth int) {
+	c.maxDepth = maxDepth
 }
 
 func (c *Camera) Render(world Hittable) {
@@ -70,7 +75,7 @@ func (c *Camera) Render(world Hittable) {
 				pixelColor := NewColor(0, 0, 0)
 				for _ = range c.samplesPerPixel {
 					r := c.getRay(x, y)
-					pixelColor = pixelColor.Add(r.Color(world))
+					pixelColor = pixelColor.Add(r.Color(world, c.maxDepth))
 				}
 				pixels[y*c.imageWidth+x] = pixelColor.Mul(c.pixelSampleScale).ToPpm()
 			}(x, y)

@@ -15,10 +15,16 @@ func (r Ray) At(t float64) Point {
 	return r.Origin.Add(r.Direction.Mul(t))
 }
 
-func (r Ray) Color(world Hittable) Color {
-	isHit, hitRec := world.Hit(r, NewInterval(0.0, math.Inf(1)))
+func (r Ray) Color(world Hittable, depth int) Color {
+	if depth <= 0 {
+		return NewColor(0, 0, 0)
+	}
+
+	isHit, hitRec := world.Hit(r, NewInterval(0.001, math.Inf(1)))
 	if isHit {
-		return hitRec.Normal.Add(NewColor(1, 1, 1)).Mul(0.5)
+		// direction := RandomOnHemisphere(hitRec.Normal)
+		direction := hitRec.Normal.Add(RandomUnitVector())
+		return NewRay(hitRec.P, direction).Color(world, depth-1).Mul(0.5)
 	}
 
 	unitDirection := r.Direction.Normalize()

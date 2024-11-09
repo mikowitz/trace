@@ -1,12 +1,49 @@
 package trace
 
-import "math"
+import (
+	"math"
+	"math/rand"
+)
 
 type Vec [3]float64
 type Point = Vec
 
 func NewVec(x, y, z float64) Vec {
 	return Vec{x, y, z}
+}
+
+func RandomVec() Vec {
+	return Vec{
+		rand.Float64(),
+		rand.Float64(),
+		rand.Float64(),
+	}
+}
+
+func RandomVecIn(min, max float64) Vec {
+	return Vec{
+		randFloat64In(min, max),
+		randFloat64In(min, max),
+		randFloat64In(min, max),
+	}
+}
+
+func RandomUnitVector() Vec {
+	for {
+		p := RandomVecIn(-1, 1)
+		lensq := p.LengthSquared()
+		if 1e-160 < lensq && lensq <= 1.0 {
+			return p.Normalize()
+		}
+	}
+}
+
+func RandomOnHemisphere(normal Vec) Vec {
+	onUnitSphere := RandomUnitVector()
+	if onUnitSphere.Dot(normal) > 0.0 {
+		return onUnitSphere
+	}
+	return onUnitSphere.Neg()
 }
 
 func (u Vec) Neg() Vec {
@@ -55,4 +92,8 @@ func (u Vec) Cross(v Vec) Vec {
 
 func (u Vec) Normalize() Vec {
 	return u.Div(u.Length())
+}
+
+func randFloat64In(min, max float64) float64 {
+	return min + (max-min)*rand.Float64()
 }
