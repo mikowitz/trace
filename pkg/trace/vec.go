@@ -94,6 +94,15 @@ func (u Vec) Normalize() Vec {
 	return u.Div(u.Length())
 }
 
+func (u Vec) IsNearZero() bool {
+	s := 1e-8
+	return math.Abs(u[0]) < s && math.Abs(u[1]) < s && math.Abs(u[2]) < s
+}
+
+func (u Vec) Reflect(n Vec) Vec {
+	return u.Sub(n.Mul(2.0 * u.Dot(n)))
+}
+
 func randFloat64In(min, max float64) float64 {
 	return min + (max-min)*rand.Float64()
 }
