@@ -27,5 +27,8 @@ func main() {
 	c.Lookat(trace.NewVec(0, 0, -1))
 	c.Vup(trace.NewVec(0, 1, 0))
 
+	c.DefocusAngle(10.0)
+	c.FocusDist(3.4)
+
 	c.Render(world)
 }

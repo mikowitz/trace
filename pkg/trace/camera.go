@@ -19,10 +19,12 @@ type Camera struct {
 	vfov                    float64
 	lookfrom, lookat        Point
 	vup                     Vec
+	defocusAngle, focusDist float64
 
-	center, pixel00Loc       Point
-	pixelDeltaU, pixelDeltaV Vec
-	pixelSampleScale         float64
+	center, pixel00Loc         Point
+	pixelDeltaU, pixelDeltaV   Vec
+	pixelSampleScale           float64
+	defocusDiskU, defocusDiskV Vec
 }
 
 func NewCamera() Camera {
@@ -59,6 +61,14 @@ func (c *Camera) Lookat(lookat Point) {
 
 func (c *Camera) Vup(vup Vec) {
 	c.vup = vup
+}
+
+func (c *Camera) DefocusAngle(defocusAngle float64) {
+	c.defocusAngle = defocusAngle
+}
+
+func (c *Camera) FocusDist(focusDist float64) {
+	c.focusDist = focusDist
 }
 
 func (c *Camera) Render(world Hittable) {
@@ -114,7 +124,13 @@ func (c *Camera) getRay(x, y int) Ray {
 	pixelSample := c.pixel00Loc.Add(c.pixelDeltaU.Mul(float64(x) + xOffset)).
 		Add(c.pixelDeltaV.Mul(float64(y) + yOffset))
 
-	origin := c.center
+		// origin := c.center
+	var origin Point
+	if c.defocusAngle <= 0.0 {
+		origin = c.center
+	} else {
+		origin = c.defocusDiskSample()
+	}
 	direction := pixelSample.Sub(origin)
 	return NewRay(origin, direction)
 }
@@ -129,10 +145,10 @@ func (c *Camera) initialize() {
 
 	c.center = c.lookfrom
 
-	focalLength := c.lookfrom.Sub(c.lookat).Length()
+	// focalLength := c.lookfrom.Sub(c.lookat).Length()
 	theta := c.vfov * math.Pi / 180.0
 	h := math.Tan(theta / 2.0)
-	viewportHeight := 2.0 * h * focalLength
+	viewportHeight := 2.0 * h * c.focusDist
 	viewportWidth := viewportHeight * (float64(c.imageWidth) / float64(c.imageHeight))
 
 	w := c.lookfrom.Sub(c.lookat).Normalize()
@@ -145,8 +161,17 @@ func (c *Camera) initialize() {
 	c.pixelDeltaU = viewportU.Div(float64(c.imageWidth))
 	c.pixelDeltaV = viewportV.Div(float64(c.imageHeight))
 
-	viewportUpperLeft := c.center.Sub(w.Mul(focalLength)).Sub(viewportU.Div(2)).Sub(viewportV.Div(2))
+	viewportUpperLeft := c.center.Sub(w.Mul(c.focusDist)).Sub(viewportU.Div(2)).Sub(viewportV.Div(2))
 	c.pixel00Loc = viewportUpperLeft.Add(c.pixelDeltaU.Add(c.pixelDeltaV).Mul(0.5))
+
+	defocusRadius := c.focusDist * math.Tan((c.defocusAngle*math.Pi/180.0)/2.0)
+	c.defocusDiskU = u.Mul(defocusRadius)
+	c.defocusDiskV = v.Mul(defocusRadius)
+}
+
+func (c *Camera) defocusDiskSample() Point {
+	p := RandomVecInUnitDisk()
+	return c.center.Add(c.defocusDiskU.Mul(p[0])).Add(c.defocusDiskV.Mul(p[1]))
 }
 
 func handle(err error) {
