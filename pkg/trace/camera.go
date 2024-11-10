@@ -2,6 +2,7 @@ package trace
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"strings"
@@ -15,6 +16,9 @@ type Camera struct {
 	imageWidth, imageHeight int
 	samplesPerPixel         int
 	maxDepth                int
+	vfov                    float64
+	lookfrom, lookat        Point
+	vup                     Vec
 
 	center, pixel00Loc       Point
 	pixelDeltaU, pixelDeltaV Vec
@@ -39,6 +43,22 @@ func (c *Camera) SamplesPerPixel(samplesPerPixel int) {
 
 func (c *Camera) MaxDepth(maxDepth int) {
 	c.maxDepth = maxDepth
+}
+
+func (c *Camera) Vfov(vfov float64) {
+	c.vfov = vfov
+}
+
+func (c *Camera) Lookfrom(lookfrom Point) {
+	c.lookfrom = lookfrom
+}
+
+func (c *Camera) Lookat(lookat Point) {
+	c.lookat = lookat
+}
+
+func (c *Camera) Vup(vup Vec) {
+	c.vup = vup
 }
 
 func (c *Camera) Render(world Hittable) {
@@ -107,19 +127,25 @@ func (c *Camera) initialize() {
 
 	c.pixelSampleScale = 1.0 / float64(c.samplesPerPixel)
 
-	c.center = NewVec(0, 0, 0)
+	c.center = c.lookfrom
 
-	focalLength := 1.0
-	viewportHeight := 2.0
+	focalLength := c.lookfrom.Sub(c.lookat).Length()
+	theta := c.vfov * math.Pi / 180.0
+	h := math.Tan(theta / 2.0)
+	viewportHeight := 2.0 * h * focalLength
 	viewportWidth := viewportHeight * (float64(c.imageWidth) / float64(c.imageHeight))
 
-	viewportU := NewVec(viewportWidth, 0, 0)
-	viewportV := NewVec(0, -viewportHeight, 0)
+	w := c.lookfrom.Sub(c.lookat).Normalize()
+	u := c.vup.Cross(w).Normalize()
+	v := w.Cross(u)
+
+	viewportU := u.Mul(viewportWidth)
+	viewportV := v.Neg().Mul(viewportHeight)
 
 	c.pixelDeltaU = viewportU.Div(float64(c.imageWidth))
 	c.pixelDeltaV = viewportV.Div(float64(c.imageHeight))
 
-	viewportUpperLeft := c.center.Sub(NewVec(0, 0, focalLength)).Sub(viewportU.Div(2)).Sub(viewportV.Div(2))
+	viewportUpperLeft := c.center.Sub(w.Mul(focalLength)).Sub(viewportU.Div(2)).Sub(viewportV.Div(2))
 	c.pixel00Loc = viewportUpperLeft.Add(c.pixelDeltaU.Add(c.pixelDeltaV).Mul(0.5))
 }
 
