@@ -103,6 +103,14 @@ func (u Vec) Reflect(n Vec) Vec {
 	return u.Sub(n.Mul(2.0 * u.Dot(n)))
 }
 
+func (u Vec) Refract(n Vec, eta float64) Vec {
+	cosTheta := math.Min(u.Neg().Dot(n), 1.0)
+	rOutPerp := u.Add(n.Mul(cosTheta)).Mul(eta)
+	rOutParallel := n.Mul(-math.Sqrt(math.Abs(1.0 - rOutPerp.LengthSquared())))
+
+	return rOutPerp.Add(rOutParallel)
+}
+
 func randFloat64In(min, max float64) float64 {
 	return min + (max-min)*rand.Float64()
 }
