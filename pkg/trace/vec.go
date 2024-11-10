@@ -38,12 +38,17 @@ func RandomUnitVector() Vec {
 	}
 }
 
-func RandomOnHemisphere(normal Vec) Vec {
-	onUnitSphere := RandomUnitVector()
-	if onUnitSphere.Dot(normal) > 0.0 {
-		return onUnitSphere
+func RandomVecInUnitDisk() Vec {
+	for {
+		p := Vec{
+			randFloat64In(-1, 1),
+			randFloat64In(-1, 1),
+			0,
+		}
+		if p.LengthSquared() < 1.0 {
+			return p
+		}
 	}
-	return onUnitSphere.Neg()
 }
 
 func (u Vec) Neg() Vec {
