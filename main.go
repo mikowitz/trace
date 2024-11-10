@@ -22,6 +22,10 @@ func main() {
 	c.ImageWidth(400)
 	c.SamplesPerPixel(100)
 	c.MaxDepth(50)
+	c.Vfov(20.0)
+	c.Lookfrom(trace.NewVec(-2, 2, 1))
+	c.Lookat(trace.NewVec(0, 0, -1))
+	c.Vup(trace.NewVec(0, 1, 0))
 
 	c.Render(world)
 }
