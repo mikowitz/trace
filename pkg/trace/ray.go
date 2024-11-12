@@ -5,10 +5,11 @@ import "math"
 type Ray struct {
 	Origin    Point
 	Direction Vec
+	Time      float64
 }
 
-func NewRay(origin Point, direction Vec) Ray {
-	return Ray{Origin: origin, Direction: direction}
+func NewRay(origin Point, direction Vec, time float64) Ray {
+	return Ray{Origin: origin, Direction: direction, Time: time}
 }
 
 func (r Ray) At(t float64) Point {

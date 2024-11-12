@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	examples.WeekendFinal()
+	examples.WeekendFinalBouncing()
 }
