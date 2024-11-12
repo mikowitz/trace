@@ -48,8 +48,8 @@ func WeekendFinal() {
 	c := trace.NewCamera()
 	c.AspectRatio(16.0 / 9.0)
 	c.ImageWidth(1200)
-	c.SamplesPerPixel(10)
-	c.MaxDepth(10)
+	c.SamplesPerPixel(500)
+	c.MaxDepth(50)
 
 	c.Vfov(20.0)
 	c.Lookfrom(trace.NewVec(13, 2, 3))
